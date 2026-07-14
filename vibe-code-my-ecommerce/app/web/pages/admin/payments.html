@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payments - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .slip-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
+    .slip-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+    .slip-modal-overlay.show { display: flex; }
+    .slip-modal-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+    .slip-modal-overlay .close-btn { position: absolute; top: 1rem; right: 1.5rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html">Inventory</a>
+      <a href="/pages/admin/shipping.html">Shipping</a>
+      <a href="/pages/admin/users.html">Users</a>
+      <a href="/pages/admin/payments.html" class="active">Payments</a>
+      <a href="/pages/admin/profile.html">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <h2 style="margin-bottom:1.5rem">Payment Management</h2>
+      <div id="payments-table"><p>Loading...</p></div>
+    </main>
+  </div>
+
+  <div class="slip-modal-overlay" id="slip-modal">
+    <button class="close-btn" onclick="closeSlipModal()">&times;</button>
+    <img id="slip-image" src="" alt="Payment Slip">
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    const statuses = [
+      { value: "paid", label: "Paid" },
+      { value: "preparing_shipment", label: "Preparing Shipment" },
+      { value: "shipped", label: "Shipped" },
+      { value: "delivered", label: "Delivered" },
+    ];
+
+    let allStatuses = [];
+
+    async function loadStatuses() {
+      try {
+        const res = await fetch(`${API_BASE.replace("/api","")}/api/products`);
+        allStatuses = statuses;
+      } catch(e) {}
+    }
+
+    function openSlipModal(url) {
+      document.getElementById("slip-image").src = url;
+      document.getElementById("slip-modal").classList.add("show");
+    }
+
+    function closeSlipModal() {
+      document.getElementById("slip-modal").classList.remove("show");
+    }
+
+    document.getElementById("slip-modal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeSlipModal();
+    });
+
+    async function loadPayments() {
+      try {
+        const payments = await api("/admin/payments");
+        const container = document.getElementById("payments-table");
+
+        if (payments.length === 0) {
+          container.innerHTML = '<p class="empty-state">No payments yet.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Slip</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Order Status</th>
+                  <th>Verified</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${payments.map(p => {
+                  const order = p.order_id;
+                  const customer = order?.user_id;
+                  const status = order?.status_id;
+                  return `
+                    <tr>
+                      <td>
+                        ${p.slip_url
+                          ? `<img class="slip-thumb" src="${p.slip_url}" onclick="openSlipModal('${p.slip_url}')" alt="slip">`
+                          : '<span style="color:var(--muted)">No slip</span>'}
+                      </td>
+                      <td>${customer?.name || "Unknown"}<br><span style="font-size:0.8rem;color:var(--muted)">${customer?.email || ""}</span></td>
+                      <td style="font-weight:600">฿${p.amount_paid.toLocaleString()}</td>
+                      <td>${p.method === "QR_PromptPay" ? "QR PromptPay" : "Bank Transfer"}</td>
+                      <td>
+                        <select id="status-${order?._id}" style="padding:0.3rem;border-radius:4px;border:1px solid var(--border)">
+                          ${statuses.map(s => `
+                            <option value="${s.value}" ${status?.status_name === s.value ? "selected" : ""}>${s.label}</option>
+                          `).join("")}
+                        </select>
+                      </td>
+                      <td>${p.verified ? '<span class="badge badge-delivered">Verified</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+                      <td>${new Date(p.created_at).toLocaleDateString("th-TH")}</td>
+                      <td>
+                        <button class="btn btn-sm btn-success" onclick="updateOrderStatus('${order?._id}')">Update</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+          <p style="color:var(--muted);margin-top:1rem;font-size:0.85rem">Total: ${payments.length} payments</p>
+        `;
+      } catch (err) {
+        document.getElementById("payments-table").innerHTML = '<p class="empty-state">Failed to load payments.</p>';
+      }
+    }
+
+    async function updateOrderStatus(orderId) {
+      const statusName = document.getElementById(`status-${orderId}`).value;
+      try {
+        await api(`/admin/orders/${orderId}`, {
+          method: "PUT",
+          body: JSON.stringify({ status_name: statusName }),
+        });
+        showToast("Status updated");
+        loadPayments();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    loadPayments();
+  </script>
+</body>
+</html>

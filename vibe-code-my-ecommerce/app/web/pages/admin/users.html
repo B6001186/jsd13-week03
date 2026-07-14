@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html">Inventory</a>
+      <a href="/pages/admin/shipping.html">Shipping</a>
+      <a href="/pages/admin/users.html" class="active">Users</a>
+      <a href="/pages/admin/payments.html">Payments</a>
+      <a href="/pages/admin/profile.html">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <h2 style="margin-bottom:1.5rem">User Management</h2>
+      <div id="users-table"><p>Loading...</p></div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    async function loadUsers() {
+      try {
+        const users = await api("/admin/users");
+        const container = document.getElementById("users-table");
+
+        if (users.length === 0) {
+          container.innerHTML = '<p class="empty-state">No registered users yet.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${users.map(u => `
+                  <tr>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.email}</td>
+                    <td>${u.tel || "-"}</td>
+                    <td><span class="badge badge-${u.role === "admin" ? "preparing" : "paid"}">${u.role}</span></td>
+                    <td>${new Date(u.created_at).toLocaleDateString("th-TH")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+          <p style="color:var(--muted);margin-top:1rem;font-size:0.85rem">Total: ${users.length} users</p>
+        `;
+      } catch (err) {
+        document.getElementById("users-table").innerHTML = '<p class="empty-state">Failed to load users.</p>';
+      }
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

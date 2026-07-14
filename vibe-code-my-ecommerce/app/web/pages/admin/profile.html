@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html">Inventory</a>
+      <a href="/pages/admin/shipping.html">Shipping</a>
+      <a href="/pages/admin/users.html">Users</a>
+      <a href="/pages/admin/payments.html">Payments</a>
+      <a href="/pages/admin/profile.html" class="active">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <h2 style="margin-bottom:1.5rem">My Profile</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;max-width:700px">
+        <div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem">
+            <h3 style="margin-bottom:1rem">Account Info</h3>
+            <p style="margin-bottom:0.5rem"><strong>Name:</strong> <span id="info-name"></span></p>
+            <p style="margin-bottom:0.5rem"><strong>Email:</strong> <span id="info-email"></span></p>
+            <p style="margin-bottom:0.5rem"><strong>Phone:</strong> <span id="info-tel"></span></p>
+            <p style="margin-bottom:0.5rem"><strong>Role:</strong> <span id="info-role"></span></p>
+            <p><strong>Joined:</strong> <span id="info-joined"></span></p>
+          </div>
+        </div>
+
+        <div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem">
+            <h3 style="margin-bottom:1rem">Edit Profile</h3>
+            <form id="profile-form">
+              <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="edit-name" required>
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="edit-tel">
+              </div>
+              <div class="form-group">
+                <label>New Password (leave blank to keep current)</label>
+                <input type="password" id="edit-password" minlength="6">
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    async function loadProfile() {
+      try {
+        const profile = await api("/auth/me");
+
+        document.getElementById("info-name").textContent = profile.name;
+        document.getElementById("info-email").textContent = profile.email;
+        document.getElementById("info-tel").textContent = profile.tel || "-";
+        document.getElementById("info-role").textContent = profile.role;
+        document.getElementById("info-joined").textContent = new Date(profile.created_at).toLocaleDateString("th-TH");
+
+        document.getElementById("edit-name").value = profile.name;
+        document.getElementById("edit-tel").value = profile.tel || "";
+      } catch (err) {
+        showToast("Failed to load profile");
+      }
+    }
+
+    document.getElementById("profile-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const body = {
+          name: document.getElementById("edit-name").value,
+          tel: document.getElementById("edit-tel").value,
+        };
+        const password = document.getElementById("edit-password").value;
+        if (password) body.password = password;
+
+        const updated = await api("/auth/me", {
+          method: "PUT",
+          body: JSON.stringify(body),
+        });
+
+        const currentUser = getUser();
+        currentUser.name = updated.name;
+        localStorage.setItem("user", JSON.stringify(currentUser));
+
+        document.getElementById("info-name").textContent = updated.name;
+        document.getElementById("info-tel").textContent = updated.tel || "-";
+
+        document.getElementById("nav-links").innerHTML = `
+          <a href="/">Home</a>
+          <span style="color:#9ca3af">${updated.name} (Admin)</span>
+          <button onclick="logout()">Logout</button>
+        `;
+
+        document.getElementById("edit-password").value = "";
+        showToast("Profile updated");
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

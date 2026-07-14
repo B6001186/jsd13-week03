@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipping - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html">Inventory</a>
+      <a href="/pages/admin/shipping.html" class="active">Shipping</a>
+      <a href="/pages/admin/users.html">Users</a>
+      <a href="/pages/admin/payments.html">Payments</a>
+      <a href="/pages/admin/profile.html">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <h2 style="margin-bottom:1.5rem">Shipping Management</h2>
+      <div id="shipping-table"><p>Loading...</p></div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    async function loadOrders() {
+      try {
+        const orders = await api("/admin/orders?status=preparing_shipment");
+        const shipped = await api("/admin/orders?status=shipped");
+        const all = [...orders, ...shipped];
+
+        if (all.length === 0) {
+          document.getElementById("shipping-table").innerHTML = '<p class="empty-state">No orders to ship.</p>';
+          return;
+        }
+
+        document.getElementById("shipping-table").innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>Order ID</th><th>Customer</th><th>Address</th><th>Tracking</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                ${all.map(o => `
+                  <tr>
+                    <td style="font-family:monospace;font-size:0.8rem">${o._id.slice(-6)}</td>
+                    <td>${o.user_id?.name || "Unknown"}</td>
+                    <td style="font-size:0.85rem">
+                      ${o.shipping_address?.details || ""}<br>
+                      ${o.shipping_address?.subdistrict || ""} ${o.shipping_address?.district || ""}<br>
+                      ${o.shipping_address?.province || ""} ${o.shipping_address?.zip_code || ""}
+                    </td>
+                    <td>
+                      <input type="text" id="tracking-${o._id}" value="${o.tracking_number || ""}" placeholder="Enter tracking"
+                        style="padding:0.3rem;border:1px solid var(--border);border-radius:4px;width:140px">
+                    </td>
+                    <td>
+                      <button class="btn btn-sm btn-success" onclick="shipOrder('${o._id}')">Ship</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById("shipping-table").innerHTML = '<p class="empty-state">Failed to load orders.</p>';
+      }
+    }
+
+    async function shipOrder(orderId) {
+      const tracking = document.getElementById(`tracking-${orderId}`).value;
+      if (!tracking) {
+        showToast("Please enter tracking number");
+        return;
+      }
+      try {
+        await api(`/orders/${orderId}/tracking`, {
+          method: "PUT",
+          body: JSON.stringify({ tracking_number: tracking }),
+        });
+        await api(`/admin/orders/${orderId}`, {
+          method: "PUT",
+          body: JSON.stringify({ status_name: "shipped" }),
+        });
+        showToast("Order shipped!");
+        loadOrders();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    loadOrders();
+  </script>
+</body>
+</html>

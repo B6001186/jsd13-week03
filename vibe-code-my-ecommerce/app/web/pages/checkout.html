@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="container">
+    <h1 style="margin-bottom:1.5rem">Checkout</h1>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+      <div>
+        <h3 style="margin-bottom:1rem">Shipping Address</h3>
+        <form id="address-form">
+          <div class="form-group">
+            <label>Address (house number, street)</label>
+            <input type="text" id="details" required>
+          </div>
+          <div class="form-group">
+            <label>Subdistrict</label>
+            <input type="text" id="subdistrict" required>
+          </div>
+          <div class="form-group">
+            <label>District</label>
+            <input type="text" id="district" required>
+          </div>
+          <div class="form-group">
+            <label>Province</label>
+            <input type="text" id="province" required>
+          </div>
+          <div class="form-group">
+            <label>Zip Code</label>
+            <input type="text" id="zip_code" required>
+          </div>
+        </form>
+
+        <h3 style="margin:1.5rem 0 1rem">Payment Method</h3>
+        <div class="form-group">
+          <label><input type="radio" name="method" value="QR_PromptPay" checked> QR PromptPay</label>
+        </div>
+        <div class="form-group">
+          <label><input type="radio" name="method" value="bank_transfer"> Bank Transfer</label>
+        </div>
+        <div class="form-group">
+          <label>Upload Slip</label>
+          <input type="file" id="slip" accept="image/*" required>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:1rem">Order Summary</h3>
+        <div id="order-summary"></div>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:1.5rem">
+      <button class="btn btn-primary" id="place-order-btn" style="padding:0.8rem 2rem">Place Order</button>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function renderNav() {
+      const nav = document.getElementById("nav-links");
+      const user = getUser();
+      if (user) {
+        nav.innerHTML = `
+          <a href="/pages/cart.html" class="cart-badge">Cart <span class="count" id="cart-count" style="display:none">0</span></a>
+          <a href="/pages/order-history.html">Orders</a>
+          <span style="color:#9ca3af">${user.name}</span>
+          <button onclick="logout()">Logout</button>
+        `;
+      } else {
+        window.location.href = "/pages/login.html";
+        return;
+      }
+      updateCartCount();
+    }
+
+    function renderSummary() {
+      const cart = getCart();
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      document.getElementById("order-summary").innerHTML = `
+        ${cart.map(item => `
+          <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border)">
+            <span>${item.product_name} x${item.quantity}</span>
+            <span>฿${(item.price * item.quantity).toLocaleString()}</span>
+          </div>
+        `).join("")}
+        <div style="display:flex;justify-content:space-between;padding:0.8rem 0;font-weight:700;font-size:1.1rem">
+          <span>Total (shipping included)</span>
+          <span style="color:var(--accent)">฿${total.toLocaleString()}</span>
+        </div>
+      `;
+    }
+
+    document.getElementById("place-order-btn").addEventListener("click", async () => {
+      if (!requireAuth()) return;
+
+      const cart = getCart();
+      if (cart.length === 0) {
+        showToast("Cart is empty");
+        return;
+      }
+
+      const slipFile = document.getElementById("slip").files[0];
+      if (!slipFile) {
+        showToast("Please upload payment slip");
+        return;
+      }
+
+      const shipping_address = {
+        details: document.getElementById("details").value,
+        subdistrict: document.getElementById("subdistrict").value,
+        district: document.getElementById("district").value,
+        province: document.getElementById("province").value,
+        zip_code: document.getElementById("zip_code").value,
+      };
+
+      try {
+        const order = await api("/orders", {
+          method: "POST",
+          body: JSON.stringify({
+            items: cart.map(item => ({ product_id: item._id, quantity: item.quantity })),
+            shipping_address,
+          }),
+        });
+
+        const method = document.querySelector('input[name="method"]:checked').value;
+        const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        const formData = new FormData();
+        formData.append("order_id", order._id);
+        formData.append("method", method);
+        formData.append("amount_paid", total);
+        formData.append("slip", slipFile);
+
+        const token = getToken();
+        await fetch(`${API_BASE}/payments/upload`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData,
+        });
+
+        localStorage.removeItem("cart");
+        showToast("Order placed successfully!");
+        setTimeout(() => window.location.href = "/pages/order-history.html", 1000);
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    renderNav();
+    renderSummary();
+  </script>
+</body>
+</html>

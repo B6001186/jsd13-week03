@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html" class="active">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html">Inventory</a>
+      <a href="/pages/admin/shipping.html">Shipping</a>
+      <a href="/pages/admin/users.html">Users</a>
+      <a href="/pages/admin/payments.html">Payments</a>
+      <a href="/pages/admin/profile.html">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <h2 style="margin-bottom:1.5rem">Dashboard</h2>
+      <div class="stat-grid" id="stats"></div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    async function loadDashboard() {
+      try {
+        const stats = await api("/admin/dashboard");
+        document.getElementById("stats").innerHTML = `
+          <div class="stat-card"><div class="label">Total Orders</div><div class="value">${stats.totalOrders}</div></div>
+          <div class="stat-card"><div class="label">Total Users</div><div class="value">${stats.totalUsers}</div></div>
+          <div class="stat-card"><div class="label">Products</div><div class="value">${stats.totalProducts}</div></div>
+          <div class="stat-card"><div class="label">Pending Payments</div><div class="value" style="color:var(--accent)">${stats.pendingPayments}</div></div>
+          <div class="stat-card"><div class="label">Total Revenue</div><div class="value" style="color:var(--success)">฿${stats.totalRevenue.toLocaleString()}</div></div>
+        `;
+      } catch (err) {
+        document.getElementById("stats").innerHTML = '<p class="empty-state">Failed to load dashboard.</p>';
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.show { display:flex; }
+    .modal { background:var(--card); border-radius:var(--radius); padding:2rem; width:90%; max-width:550px; max-height:90vh; overflow-y:auto; }
+    .modal h3 { margin-bottom:1.2rem; }
+    .modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1.2rem; }
+    .img-preview { width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--border); margin-right:0.5rem; margin-bottom:0.5rem; }
+    .img-list { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem; }
+    .img-list-item { position:relative; display:inline-block; }
+    .img-list-item .remove-img { position:absolute; top:-6px; right:-6px; background:var(--danger); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a href="/pages/admin/dashboard.html">Dashboard</a>
+      <a href="/pages/admin/orders.html">Orders</a>
+      <a href="/pages/admin/inventory.html" class="active">Inventory</a>
+      <a href="/pages/admin/shipping.html">Shipping</a>
+      <a href="/pages/admin/users.html">Users</a>
+      <a href="/pages/admin/payments.html">Payments</a>
+      <a href="/pages/admin/profile.html">Profile</a>
+    </aside>
+    <main class="admin-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+        <h2>Product Management</h2>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Product</button>
+      </div>
+      <div id="products-table"><p>Loading...</p></div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal">
+      <h3 id="modal-title">Add Product</h3>
+      <form id="product-form">
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="p-name" required>
+        </div>
+        <div class="form-group">
+          <label>Caption / Description</label>
+          <textarea id="p-caption" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Price (THB) *</label>
+          <input type="number" id="p-price" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Stock / Inventory *</label>
+          <input type="number" id="p-inventory" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="p-active">
+            <option value="true">Active (Visible)</option>
+            <option value="false">Inactive (Hidden)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Product Images</label>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+            <input type="text" id="p-url-input" placeholder="Paste image URL" style="flex:1">
+            <button type="button" class="btn btn-sm btn-outline" onclick="addImageUrl()">Add URL</button>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <label class="btn btn-sm btn-outline" style="cursor:pointer;margin:0">
+              Upload File
+              <input type="file" id="p-file-input" accept="image/*" style="display:none" onchange="uploadFile(this)">
+            </label>
+            <span id="upload-status" style="font-size:0.8rem;color:var(--muted)"></span>
+          </div>
+          <div class="img-list" id="p-url-list"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-submit-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!requireAdmin()) throw new Error("Not admin");
+
+    const user = getUser();
+    document.getElementById("nav-links").innerHTML = `
+      <a href="/">Home</a>
+      <span style="color:#9ca3af">${user.name} (Admin)</span>
+      <button onclick="logout()">Logout</button>
+    `;
+
+    let currentUrls = [];
+
+    function addImageUrl() {
+      const input = document.getElementById("p-url-input");
+      const url = input.value.trim();
+      if (!url) return;
+      currentUrls.push(url);
+      input.value = "";
+      renderUrlList();
+    }
+
+    document.getElementById("p-url-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); addImageUrl(); }
+    });
+
+    function removeUrl(idx) {
+      currentUrls.splice(idx, 1);
+      renderUrlList();
+    }
+
+    async function uploadFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById("upload-status").textContent = "Uploading...";
+      const formData = new FormData();
+      formData.append("image", file);
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/products/upload`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        currentUrls.push(data.url);
+        renderUrlList();
+        document.getElementById("upload-status").textContent = "Uploaded!";
+        input.value = "";
+        setTimeout(() => { document.getElementById("upload-status").textContent = ""; }, 2000);
+      } catch (err) {
+        document.getElementById("upload-status").textContent = "Failed: " + err.message;
+      }
+    }
+
+    function renderUrlList() {
+      document.getElementById("p-url-list").innerHTML = currentUrls.map((url, i) => `
+        <div class="img-list-item">
+          <img class="img-preview" src="${url}" onerror="this.src='/assets/images/placeholder.svg'">
+          <button type="button" class="remove-img" onclick="removeUrl(${i})">&times;</button>
+        </div>
+      `).join("");
+    }
+
+    function openAddModal() {
+      document.getElementById("modal-title").textContent = "Add Product";
+      document.getElementById("edit-id").value = "";
+      document.getElementById("p-name").value = "";
+      document.getElementById("p-caption").value = "";
+      document.getElementById("p-price").value = "";
+      document.getElementById("p-inventory").value = "";
+      document.getElementById("p-active").value = "true";
+      document.getElementById("p-file-input").value = "";
+      document.getElementById("upload-status").textContent = "";
+      currentUrls = [];
+      renderUrlList();
+      document.getElementById("product-modal").classList.add("show");
+    }
+
+    function openEditModal(product) {
+      document.getElementById("modal-title").textContent = "Edit Product";
+      document.getElementById("edit-id").value = product._id;
+      document.getElementById("p-name").value = product.product_name;
+      document.getElementById("p-caption").value = product.caption || "";
+      document.getElementById("p-price").value = product.price;
+      document.getElementById("p-inventory").value = product.inventory;
+      document.getElementById("p-active").value = product.is_active ? "true" : "false";
+      currentUrls = [...(product.pics_urls || [])];
+      renderUrlList();
+      document.getElementById("product-modal").classList.add("show");
+    }
+
+    function closeModal() {
+      document.getElementById("product-modal").classList.remove("show");
+    }
+
+    document.getElementById("product-modal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    document.getElementById("product-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("edit-id").value;
+      const body = {
+        product_name: document.getElementById("p-name").value,
+        caption: document.getElementById("p-caption").value,
+        price: Number(document.getElementById("p-price").value),
+        inventory: Number(document.getElementById("p-inventory").value),
+        is_active: document.getElementById("p-active").value === "true",
+        pics_urls: currentUrls,
+      };
+
+      try {
+        if (id) {
+          await api(`/products/${id}`, { method: "PUT", body: JSON.stringify(body) });
+          showToast("Product updated");
+        } else {
+          await api("/products", { method: "POST", body: JSON.stringify(body) });
+          showToast("Product added");
+        }
+        closeModal();
+        loadProducts();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    async function loadProducts() {
+      try {
+        const products = await api("/admin/products");
+        const container = document.getElementById("products-table");
+
+        if (products.length === 0) {
+          container.innerHTML = '<p class="empty-state">No products yet.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>Image</th><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                ${products.map(p => `
+                  <tr>
+                    <td>
+                      <img src="${p.pics_urls?.[0] || '/assets/images/placeholder.svg'}" class="img-preview"
+                           onerror="this.src='/assets/images/placeholder.svg'">
+                    </td>
+                    <td>
+                      <strong>${p.product_name}</strong>
+                      <br><span style="color:var(--muted);font-size:0.8rem">${p.caption || ""}</span>
+                      ${p.pics_urls?.length > 1 ? `<br><span style="font-size:0.75rem;color:var(--accent)">${p.pics_urls.length} images</span>` : ""}
+                    </td>
+                    <td style="font-weight:600">฿${p.price.toLocaleString()}</td>
+                    <td>
+                      <input type="number" id="stock-${p._id}" value="${p.inventory}" min="0"
+                        style="width:70px;padding:0.3rem;border:1px solid var(--border);border-radius:4px">
+                      <button class="btn btn-sm btn-outline" onclick="updateStock('${p._id}')" style="margin-left:0.3rem">Save</button>
+                    </td>
+                    <td>${p.is_active ? '<span class="badge badge-delivered">Active</span>' : '<span class="badge badge-pending">Inactive</span>'}</td>
+                    <td>
+                      <button class="btn btn-sm btn-primary" onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Edit</button>
+                      <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p._id}','${p.product_name.replace(/'/g, "\\'")}')" style="margin-left:0.3rem">Delete</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+          <p style="color:var(--muted);margin-top:1rem;font-size:0.85rem">Total: ${products.length} products</p>
+        `;
+      } catch (err) {
+        document.getElementById("products-table").innerHTML = '<p class="empty-state">Failed to load products.</p>';
+      }
+    }
+
+    async function updateStock(id) {
+      const stock = document.getElementById(`stock-${id}`).value;
+      try {
+        await api(`/products/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ inventory: Number(stock) }),
+        });
+        showToast("Stock updated");
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    function editProduct(product) {
+      openEditModal(product);
+    }
+
+    async function deleteProduct(id, name) {
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      try {
+        await api(`/products/${id}`, { method: "DELETE" });
+        showToast("Product deleted");
+        loadProducts();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>

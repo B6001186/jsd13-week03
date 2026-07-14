@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Order - D2C Bookstore</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">D2C Bookstore</a>
+    <div class="navbar-links" id="nav-links"></div>
+  </nav>
+
+  <div class="container">
+    <h1 style="margin-bottom:1.5rem">Track Order</h1>
+    <div id="tracking-content"><p>Loading...</p></div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function renderNav() {
+      const nav = document.getElementById("nav-links");
+      const user = getUser();
+      if (!user) { window.location.href = "/pages/login.html"; return; }
+      nav.innerHTML = `
+        <a href="/pages/cart.html" class="cart-badge">Cart <span class="count" id="cart-count" style="display:none">0</span></a>
+        <a href="/pages/order-history.html">Orders</a>
+        <span style="color:#9ca3af">${user.name}</span>
+        <button onclick="logout()">Logout</button>
+      `;
+      updateCartCount();
+    }
+
+    const steps = ["pending_payment", "paid", "preparing_shipment", "shipped", "delivered"];
+
+    async function loadTracking() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get("id");
+      if (!orderId) {
+        document.getElementById("tracking-content").innerHTML = '<p class="empty-state">No order specified.</p>';
+        return;
+      }
+
+      try {
+        const order = await api(`/orders/${orderId}`);
+        const currentIdx = steps.indexOf(order.status_id?.status_name);
+
+        document.getElementById("tracking-content").innerHTML = `
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem">
+            <h3>Order #${order._id.slice(-6)}</h3>
+            <p style="color:var(--muted);margin-bottom:1rem">Placed on ${new Date(order.created_at).toLocaleDateString("th-TH")}</p>
+
+            <div style="margin-bottom:1.5rem">
+              <h4>Status: ${order.status_id?.description || "Unknown"}</h4>
+              ${order.tracking_number ? `<p style="margin-top:0.5rem">Tracking: <strong>${order.tracking_number}</strong></p>` : ""}
+            </div>
+
+            <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem">
+              ${steps.map((s, i) => `
+                <div style="flex:1;text-align:center;padding:0.5rem;border-radius:4px;font-size:0.8rem;
+                  background:${i <= currentIdx ? "var(--accent)" : "var(--border)"};color:${i <= currentIdx ? "white" : "var(--muted)"}">
+                  ${s.replace(/_/g, " ")}
+                </div>
+              `).join("")}
+            </div>
+
+            <h4>Items</h4>
+            ${order.items.map(i => `
+              <div style="padding:0.5rem 0;border-bottom:1px solid var(--border)">
+                ${i.product_id?.product_name || "Book"} x${i.quantity} — ฿${(i.price_at_purchase * i.quantity).toLocaleString()}
+              </div>
+            `).join("")}
+
+            <div style="margin-top:1rem;font-weight:700;text-align:right">
+              Total: ฿${order.total_amount.toLocaleString()}
+            </div>
+
+            <div style="margin-top:1.5rem">
+              <h4>Shipping To</h4>
+              <p>${order.shipping_address?.details || ""}</p>
+              <p>${order.shipping_address?.subdistrict || ""} ${order.shipping_address?.district || ""} ${order.shipping_address?.province || ""} ${order.shipping_address?.zip_code || ""}</p>
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <a href="/pages/order-history.html" class="btn btn-outline">Back to Orders</a>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById("tracking-content").innerHTML = '<p class="empty-state">Failed to load order.</p>';
+      }
+    }
+
+    renderNav();
+    loadTracking();
+  </script>
+</body>
+</html>
