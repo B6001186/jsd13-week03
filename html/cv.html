@@ -8,15 +8,35 @@
         body {
             font-family: 'IBM Plex Sans Thai', sans-serif;
         }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+       }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid #ddd;    /* เพิ่มเส้นขอบให้ทุกช่อง */
+        }
+
+        th {
+            background-color: #f4f4f4; /* เปลี่ยนสีพื้นหลังหัวตารางให้เด่นขึ้น */
+            color: #333;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div class="profile-card">
+
+    <div class="container">
         <img src="https://i.pinimg.com/736x/ea/86/ab/ea86aba3c3f47c96011071f1634247a9.jpg" alt="Profile Picture" width="200">
         <h1>Atcharaporn Okrathok</h1>
         <p>I'm a junior web developer hoping to grow in this field. I'm learning MERN Stack. Nice to meet you all!</p>
-    </div>
-    <div>
+        
+    
+    
         <h3>งานอดิเรก</h3>
             <ul>
                 <li>เขียนนิยาย</li>
@@ -36,14 +56,37 @@
                 <li>SOTUS พี่ว้ากตัวร้ายกับนายปีหนึ่ง</li>
             </ol>
         <h3>Social Media</h3>
+
+        
+                    <a href="https://www.linkedin.com/in/atcharaporn-okrathok-40a2a0189/" target="_blank" alt="LinkedIn">
+                    <img src="https://img.magnific.com/premium-vector/linkedin-logo_578229-227.jpg?semt=ais_hybrid&w=740&q=80" alt="LinkedIn" width="30">
+                    </a>
+                
+                    <a href="https://github.com/B6001186" target="_blank" alt="GitHub">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUW1iyXpW13IwJthri_0K2JsXiS6RYQymlgGPum0MX_hV8trc5YDl2qUeU&s=10" alt="GitHub" width="30">
+                    </a>
+             
            
-                <a href="https://www.linkedin.com/in/atcharaporn-okrathok-40a2a0189/">
-                <img src="https://img.magnific.com/premium-vector/linkedin-logo_578229-227.jpg?semt=ais_hybrid&w=740&q=80" alt="LinkedIn" width="30">
-                </a>
-                <a href="https://github.com/B6001186">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUW1iyXpW13IwJthri_0K2JsXiS6RYQymlgGPum0MX_hV8trc5YDl2qUeU&s=10" alt="GitHub" width="30">
-                </a>
-           
-    </div>
+        <h3>Placement Goal</h3>
+        <table style="width: 100%; max-width: 800px; border-collapse: collapse; border: 1px solid #ddd; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+            <thead>
+                <tr>
+                    <th>30 days after Graduation</th>
+                    <th>60 days after Graduation</th>
+                    <th>90 days after the completion of Generation</th>
+                    <th>1 year after Generation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Gain a better understanding of HTML, CSS, JavaScript, and basic web structure.</td>
+                    <td>Start writing the MERN stack.</td>
+                    <td>Understand how to build websites using the MERN stack and become more proficient in creating websites.</td>
+                    <td>Secure a junior web developer position and continue to grow in the field.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        </div>
 </body>
 </html>
