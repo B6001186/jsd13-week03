@@ -15,78 +15,82 @@
             padding: 20px;
        }
 
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border: 1px solid #ddd;    /* เพิ่มเส้นขอบให้ทุกช่อง */
-        }
-
-        th {
-            background-color: #f4f4f4; /* เปลี่ยนสีพื้นหลังหัวตารางให้เด่นขึ้น */
-            color: #333;
-            font-weight: bold;
+        .section-title {
+            border-bottom: 2px solid #2c3e50; /* สีเข้มดูเป็นทางการ */
+            padding-bottom: 5px;              /* ระยะห่างระหว่างตัวหนังสือกับเส้น */
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <img src="https://i.pinimg.com/736x/ea/86/ab/ea86aba3c3f47c96011071f1634247a9.jpg" alt="Profile Picture" width="200">
-        <h1>Atcharaporn Okrathok</h1>
-        <p>I'm a junior web developer hoping to grow in this field. I'm learning MERN Stack. Nice to meet you all!</p>
-        
-    
-    
-        <h3>งานอดิเรก</h3>
-            <ul>
-                <li>เขียนนิยาย</li>
-                <li>ทำอาหารไทย</li>
-                <li>ปลูกต้นไม้</li>
-            </ul>
-        <h3>ภาษาโปรแกรมที่อยากเรียน</h3>
-            <ul>
-                <li>JavaScript</li>
-                <li>Python</li>
-                <li>TypeScript</li>
-            </ul>
-        <h3>Top 3 ซีรีส์ที่ชอบที่สุด</h3>
-            <ol>
-                <li>ด้วงกับเธอ</li>
-                <li>อรุณรุ่ง</li>
-                <li>SOTUS พี่ว้ากตัวร้ายกับนายปีหนึ่ง</li>
-            </ol>
-        <h3>Social Media</h3>
-
-        
-                    <a href="https://www.linkedin.com/in/atcharaporn-okrathok-40a2a0189/" target="_blank" alt="LinkedIn">
-                    <img src="https://img.magnific.com/premium-vector/linkedin-logo_578229-227.jpg?semt=ais_hybrid&w=740&q=80" alt="LinkedIn" width="30">
-                    </a>
-                
-                    <a href="https://github.com/B6001186" target="_blank" alt="GitHub">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUW1iyXpW13IwJthri_0K2JsXiS6RYQymlgGPum0MX_hV8trc5YDl2qUeU&s=10" alt="GitHub" width="30">
-                    </a>
-             
-           
-        <h3>Placement Goal</h3>
-        <table style="width: 100%; max-width: 800px; border-collapse: collapse; border: 1px solid #ddd; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
-            <thead>
-                <tr>
-                    <th>30 days after Graduation</th>
-                    <th>60 days after Graduation</th>
-                    <th>90 days after the completion of Generation</th>
-                    <th>1 year after Generation</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Gain a better understanding of HTML, CSS, JavaScript, and basic web structure.</td>
-                    <td>Start writing the MERN stack.</td>
-                    <td>Understand how to build websites using the MERN stack and become more proficient in creating websites.</td>
-                    <td>Secure a junior web developer position and continue to grow in the field.</td>
-                </tr>
-            </tbody>
-        </table>
-
+        <h1 class="section-title" style="text-align: center;">Atcharaporn Okrathok</h1>
+        <div style="display: flex; justify-content: space-evenly;">
+            <p>Khonburi, Nakhon Ratchasima, Thailand, 30250</p>
+            <p>atcharapornok@gmail.com</p>
+            <p>+66 82 130 0459</p>
         </div>
+        <div style="display: flex; align-items: center; justify-content: space-around;">
+           <p><a href="https://github.com/B6001186" target="_blank">https://github.com/B6001186</a></p>
+           <p><a href="https://www.linkedin.com/in/atcharaporn-okrathok-40a2a0189/" target="_blank">LinkedIn</a></p>
+        </div>
+        
+
+        <h2 class="section-title">Education</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span><strong>Suranaree University of Technology</strong></span>
+            <span>Nakhon Ratchasima, TH</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span>Bachelor of Engineering, Computer Engineering</span>
+            <span>June 26, 2024</span>
+        </div>
+        <br/>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span><strong>Chorakhehin Sangkhakit Wittaya School</strong></span>
+            <span>Nakhon Ratchasima, TH</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span>Science-Mathematics Program</span>
+            <span>March 27, 2017</span>
+        </div>
+
+        <h2 class="section-title">Experience</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span><strong>Y.I.M Corporation</strong></span>
+            <span>Bangkok, TH</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; ">
+            <span>Frontend Developer Internship</span>
+            <span>2020</span>
+        </div>
+        <div style="display: flex;">
+        <ul>
+            <li>Developed and enhanced web interfaces using Next.js to create seamless, responsive user experiences.</li>
+            <li>Collaborated closely with the Backend team to integrate RESTful APIs, ensuring accurate and efficient data flow to the frontend.</li>
+            <li>Managed State Management and data handling to optimize application performance and responsiveness.</li>
+            <li>Participated in debugging and performance optimization processes to ensure high-quality, reliable web functionality.</li>
+        </ul>
+        </div>
+        
+        <h2 class="section-title">Skills & Interests</h2>
+        <div style="display: flex;">
+        <ul>
+            <li>
+                <strong>Technical: </strong>
+                <ul>
+                    <li><strong>Languages: </strong>JavaScript (ES6+), Python, HTML5, CSS3</li>
+                    <li><strong>Frontend Development: </strong>React.js, Next.js</li>
+                    <li><strong>Backend Development: </strong>Node.js, Express.js</li>
+                    <li><strong>Database Management: </strong>MongoDB, PostgreSQL</li>
+                    <li><strong>Version Control: </strong>Git</li>
+                    <li><strong>Tools: </strong>Google Workspace, Microsoft Office (Word, Excel), GitHub, Slack, Zoom</li>
+                </ul>
+            </li>
+            <li><strong>Language: </strong>Thai (Native), English (Elementary)</li>
+            <li><strong>Interests: </strong>Data Engineering Pipelines, Machine Learning Basics, Data Analysis, Prompt Engineering.</li>
+        </ul>
+        </div>
+    </div>
 </body>
 </html>
